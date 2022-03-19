@@ -6,18 +6,21 @@ Created on 2/27/22
 """
 import os
 import subprocess as sp, shlex
+from pprint import pprint
+
 import xmltodict
 import json
 from api.service.utils.logger import error_logger, info_logger
 
 
 class ScanSingleIp:
-    def __init__(self, ip, port=None, timeout=None, threads=None, verbose=None, output=None, output_file=None,
+    def __init__(self, ip, ports=None, timeout=None, threads=None, verbose=None, output=None, output_file=None,
                  output_json=None, command=None, output_file_xml=None):
         self.nmap_command = None
         self.ip = ip
-        self.port = port
+        self.ports = ports
         self.timeout = timeout
+        self.timing = 'T3'
         self.threads = threads
         self.verbose = verbose
         self.output_name = "output_files/scan_" + self.ip
@@ -27,26 +30,45 @@ class ScanSingleIp:
 
         self.command = command
 
-    def initial_scan(self):
-        self.nmap_command = "nmap -sS -T4 -Pn " + self.ip + " -oA " + self.output_name
-        output = sp.Popen(self.nmap_command, shell=True, stdout=sp.PIPE, stderr=sp.STDOUT)
+    def basic_scan(self):
+        self.nmap_command = "nmap -sS -{0} -Pn -oA {1} {2}".format(self.timing, self.output_name, self.ip)
 
-        print(output)
+    def scan_all_ports(self):
+        self.nmap_command = "nmap -sS -{0} -Pn -p 1-65535 -oA {1} {2}".format(self.timing, self.output_name, self.ip)
+
+    def get_open_ports(self):
+        output = sp.Popen(self.nmap_command, shell=True, stdout=sp.PIPE, stderr=sp.STDOUT)
         output.wait()
         with open(self.output_name + '.xml', 'r') as file:
             self.output_xml = file.read()
-        self.upload_files_s3()
-        self.xml_to_json()
-        return json.dumps(self.parse_json_output())
 
-    def xml_to_json(self):
+        self.upload_files_s3()
         self.output_json = xmltodict.parse(self.output_xml)
-        print(self.output_json)
+        info_logger.info(json.loads(json.dumps(self.output_json))['nmaprun']['host']['ports'])
+        return self.return_open_ports()
 
     def parse_json_output(self):
         host = self.output_json['nmaprun']['host']
-        ports = host['ports']['port']
+        ports = None
+        try:
+            ports = host['ports']['port']
+            info_logger.info(json.loads(json.dumps(ports)))
+        except KeyError:
+            error_logger.error("No ports found for host: {0}".format(self.ip))
+
         return ports
+
+    def return_open_ports(self):
+        ports = self.parse_json_output()
+        open_ports = []
+
+        if ports:
+            if type(ports) is list:
+                open_ports = [port['@portid'] for port in ports if port['state']['@state'] == 'open']
+            else:
+                open_ports = [ports['@portid']]
+
+        return open_ports
 
     def upload_files_s3(self):
         try:
@@ -55,3 +77,11 @@ class ScanSingleIp:
             os.remove(self.output_name + '.gnmap')
         except OSError as e:
             error_logger.error(e)
+
+    def launch_scan(self):
+        # ports_initial_scan = self.initial_scan()
+        # all_open_ports = self.scan_all_ports()
+        self.scan_all_ports()
+        open_ports = self.get_open_ports()
+
+        return open_ports

@@ -28,6 +28,6 @@ def launch_scan():
     data = request.get_json()
     ip = data['ip']
     scan_single_ip = ScanSingleIp(ip=ip)
-    response_scan = scan_single_ip.initial_scan()
+    response_scan = scan_single_ip.launch_scan()
 
-    return response_scan
+    return jsonify(response_scan)
