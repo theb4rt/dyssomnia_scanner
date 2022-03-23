@@ -14,8 +14,8 @@ from api.service.utils.logger import error_logger, info_logger
 
 
 class ScanSingleIp:
-    def __init__(self, ip, ports=None, timeout=None, threads=None, verbose=None, output=None, output_file=None,
-                 output_json=None, command=None, output_file_xml=None):
+    def __init__(self, ip, type_scan, ports=None, timeout=None, threads=None, verbose=None, output=None,
+                 output_file=None, output_json=None, command=None, output_file_xml=None):
         self.nmap_command = None
         self.ip = ip
         self.ports = ports
@@ -27,6 +27,7 @@ class ScanSingleIp:
         self.output_xml = output_file_xml
         self.output_file = output_file
         self.output_json = output_json
+        self.type_scan = type_scan
 
         self.command = command
 
@@ -35,6 +36,17 @@ class ScanSingleIp:
 
     def scan_all_ports(self):
         self.nmap_command = "nmap -sS -{0} -Pn -p 1-65535 -oA {1} {2}".format(self.timing, self.output_name, self.ip)
+
+    def deep_scan_by_ports(self):
+        self.nmap_command = "nmap -sS -{0} -Pn -sV -sC -O -p {1} -oA {2} {3}".format(self.timing, self.ports,
+                                                                                     self.output_name,
+                                                                                     self.ip)
+        launch = sp.Popen(self.nmap_command, shell=True, stdout=sp.PIPE, stderr=sp.STDOUT)
+        launch.wait()
+        with open(self.output_name + '.xml', 'r') as file:
+            xml = file.read()
+            xml = xmltodict.parse(xml)
+        print(json.dumps(xml))
 
     def get_open_ports(self):
         output = sp.Popen(self.nmap_command, shell=True, stdout=sp.PIPE, stderr=sp.STDOUT)
@@ -83,5 +95,7 @@ class ScanSingleIp:
         # all_open_ports = self.scan_all_ports()
         self.scan_all_ports()
         open_ports = self.get_open_ports()
+        self.ports = open_ports
+        deep_scan_by_ports = self.deep_scan_by_ports()
 
         return open_ports
