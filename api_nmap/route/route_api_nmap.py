@@ -7,7 +7,7 @@ Created on 2/21/22
 from threading import Thread
 from urllib import request
 from flask import Blueprint, request, jsonify, Response
-from api.service.scan_single_ip import ScanSingleIp
+from api_nmap.service.scan_single_ip import ScanSingleIp
 from time import sleep
 
 nmap_api = Blueprint('api', __name__, url_prefix='/api')
@@ -27,7 +27,8 @@ def index_post():
 def launch_scan():
     data = request.get_json()
     ip = data['ip']
-    scan_single_ip = ScanSingleIp(ip=ip)
+    type_scan = data['type_scan']
+    scan_single_ip = ScanSingleIp(ip=ip,type_scan=type_scan)
     response_scan = scan_single_ip.launch_scan()
 
     return jsonify(response_scan)
