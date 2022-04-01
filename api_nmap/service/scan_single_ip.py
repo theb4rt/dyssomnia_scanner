@@ -10,7 +10,7 @@ from pprint import pprint
 
 import xmltodict
 import json
-from api.service.utils.logger import error_logger, info_logger
+from api_nmap.service.utils.logger import error_logger, info_logger
 
 
 class ScanSingleIp:
