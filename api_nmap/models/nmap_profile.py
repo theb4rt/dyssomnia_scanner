@@ -8,7 +8,23 @@ from api_nmap.database import db
 
 class NmapProfile(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    profile_name = db.Column(db.String(80), allow_null=False)
-    ip = db.Column(db.String(64), allow_null=False)
+    profile_name = db.Column(db.String(80), nullable=True)
+    ip = db.Column(db.String(64), nullable=True)
 
+    def __init__(self, profile_name, ip):
+        self.profile_name = profile_name
+        self.ip = ip
 
+    def __str__(self):
+        return '<NmapProfile %r>' % self.profile_name
+
+    def save(self):
+        db.session.add(self)
+        db.session.commit()
+
+    def update(self):
+        db.session.commit()
+
+    def delete(self):
+        db.session.delete(self)
+        db.session.commit()

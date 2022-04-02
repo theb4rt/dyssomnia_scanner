@@ -6,3 +6,4 @@ Created on 2/15/22
 """
 from .model import Model
 from .user import User
+from .nmap_profile import NmapProfile

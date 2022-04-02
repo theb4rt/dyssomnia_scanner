@@ -13,6 +13,5 @@ class Model(BaseModel):
         for key, value in data.items():
             if key in self._fillable:
                 setattr(self, key, value)
-
     def update(self, data: dict) -> None:
         self.setAttrs(data)
